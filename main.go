@@ -204,6 +204,7 @@ func (t *AugmentedTask) ExporterInformation() []*PrometheusTaskInfo {
 			continue
 		}
 
+		var hostPort int64
 		v, ok := d.DockerLabels[*prometheusPortLabel]
 		if !ok {
 			// Nope, no Prometheus-exported port in this container def.
@@ -246,7 +247,6 @@ func (t *AugmentedTask) ExporterInformation() []*PrometheusTaskInfo {
 			hostPort = int64(exporterPort)
 		}
 
-		var hostPort int64
 		if *prometheusDynamicPortDetection {
 			v, ok := d.DockerLabels[dynamicPortLabel]
 			if !ok || v != "1" {
