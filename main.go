@@ -205,6 +205,7 @@ func (t *AugmentedTask) ExporterInformation() []*PrometheusTaskInfo {
 		}
 
 		var hostPort int64
+		var ok bool
 		v, ok := d.DockerLabels[*prometheusPortLabel]
 		if !ok {
 			// Nope, no Prometheus-exported port in this container def.
@@ -267,7 +268,6 @@ func (t *AugmentedTask) ExporterInformation() []*PrometheusTaskInfo {
 		}
 		var exporterServerName string
 		var exporterPath string
-		var ok bool
 		exporterServerName, ok = d.DockerLabels[*prometheusServerNameLabel]
 		if ok {
 			host = strings.TrimRight(exporterServerName, "/")
