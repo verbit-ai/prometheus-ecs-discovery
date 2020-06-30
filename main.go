@@ -204,6 +204,48 @@ func (t *AugmentedTask) ExporterInformation() []*PrometheusTaskInfo {
 			continue
 		}
 
+		v, ok := d.DockerLabels[*prometheusPortLabel]
+		if !ok {
+			// Nope, no Prometheus-exported port in this container def.
+			// This container is no good.  We continue.
+			continue
+		}
+
+		if len(filter) != 0 {
+			v, ok := d.DockerLabels[filter[0]]
+			if !ok {
+				// Nope, the filter label isn't present.
+				continue
+			}
+			if len(filter) == 2 && v != filter[1] {
+				// Nope, the filter label value doesn't match.
+				continue
+			}
+		}
+
+		var exporterPort int
+		var err error
+		if exporterPort, err = strconv.Atoi(v); err != nil || exporterPort < 0 {
+			// This container has an invalid port definition.
+			// This container is no good.  We continue.
+			continue
+		}
+
+		if len(i.NetworkBindings) > 0 {
+			for _, nb := range i.NetworkBindings {
+				if int(*nb.ContainerPort) == exporterPort {
+					hostPort = *nb.HostPort
+				}
+			}
+		} else {
+			for _, ni := range i.NetworkInterfaces {
+				if *ni.PrivateIpv4Address != "" {
+					ip = *ni.PrivateIpv4Address
+				}
+			}
+			hostPort = int64(exporterPort)
+		}
+
 		var hostPort int64
 		if *prometheusDynamicPortDetection {
 			v, ok := d.DockerLabels[dynamicPortLabel]
@@ -223,50 +265,6 @@ func (t *AugmentedTask) ExporterInformation() []*PrometheusTaskInfo {
 				hostPort = *port
 			}
 		}
-		if true {
-			v, ok := d.DockerLabels[*prometheusPortLabel]
-			if !ok {
-				// Nope, no Prometheus-exported port in this container def.
-				// This container is no good.  We continue.
-				continue
-			}
-
-			if len(filter) != 0 {
-				v, ok := d.DockerLabels[filter[0]]
-				if !ok {
-					// Nope, the filter label isn't present.
-					continue
-				}
-				if len(filter) == 2 && v != filter[1] {
-					// Nope, the filter label value doesn't match.
-					continue
-				}
-			}
-
-			var exporterPort int
-			var err error
-			if exporterPort, err = strconv.Atoi(v); err != nil || exporterPort < 0 {
-				// This container has an invalid port definition.
-				// This container is no good.  We continue.
-				continue
-			}
-
-			if len(i.NetworkBindings) > 0 {
-				for _, nb := range i.NetworkBindings {
-					if int(*nb.ContainerPort) == exporterPort {
-						hostPort = *nb.HostPort
-					}
-				}
-			} else {
-				for _, ni := range i.NetworkInterfaces {
-					if *ni.PrivateIpv4Address != "" {
-						ip = *ni.PrivateIpv4Address
-					}
-				}
-				hostPort = int64(exporterPort)
-			}
-		}
-
 		var exporterServerName string
 		var exporterPath string
 		var ok bool
